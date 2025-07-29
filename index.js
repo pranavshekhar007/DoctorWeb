@@ -11,7 +11,7 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://crackers-backend.vercel.app/api/",
+    origin: "https://doctor-web-gilt.vercel.app/api/",
     methods: ["GET", "POST"],
     credentials: true,
   },
