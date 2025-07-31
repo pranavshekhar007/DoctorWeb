@@ -17,261 +17,375 @@ const cloudinary = require("../utils/cloudinary");
 const upload = require("../utils/multer");
 const auth = require("../utils/auth");
 const moment = require("moment");
-userController.post("/send-otp", async (req, res) => {
-  try {
-    const { phone, ...otherDetails } = req.body;
-    // Check if the phone number is provided
-    if (!phone) {
-      return sendResponse(res, 400, "Failed", {
-        message: "Phone number is required.",
-        statusCode: 400,
-      });
-    }
-    // Generate OTP
-    const phoneOtp = generateOTP();
+const bcrypt = require("bcryptjs");
 
-    // Check if the user exists
-    let user = await User.findOne({ phone });
+// userController.post("/send-otp", async (req, res) => {
+//   try {
+//     const { phone, ...otherDetails } = req.body;
+//     // Check if the phone number is provided
+//     if (!phone) {
+//       return sendResponse(res, 400, "Failed", {
+//         message: "Phone number is required.",
+//         statusCode: 400,
+//       });
+//     }
+//     // Generate OTP
+//     const phoneOtp = generateOTP();
 
-    if (!user) {
-      // Create a new user with the provided details and OTP
-      user = await User.create({
-        phone,
-        phoneOtp,
-        ...otherDetails,
-      });
+//     // Check if the user exists
+//     let user = await User.findOne({ phone });
 
-      // Generate JWT token for the new user
-      const token = jwt.sign(
-        { userId: user._id, phone: user.phone },
-        process.env.JWT_KEY
-      );
-      // Store the token in the user object or return it in the response
-      user.token = token;
-      user = await User.findByIdAndUpdate(user.id, { token }, { new: true });
-    } else {
-      // Update the existing user's OTP
-      user = await User.findByIdAndUpdate(user.id, { phoneOtp }, { new: true });
-    }
-    const appHash = "ems/3nG2V1H"; // Apne app ka actual hash yahan dalein
+//     if (!user) {
+//       // Create a new user with the provided details and OTP
+//       user = await User.create({
+//         phone,
+//         phoneOtp,
+//         ...otherDetails,
+//       });
 
-    // Properly formatted OTP message for autofill
-    const otpMessage = `<#> ${phoneOtp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
+//       // Generate JWT token for the new user
+//       const token = jwt.sign(
+//         { userId: user._id, phone: user.phone },
+//         process.env.JWT_KEY
+//       );
+//       // Store the token in the user object or return it in the response
+//       user.token = token;
+//       user = await User.findByIdAndUpdate(user.id, { token }, { new: true });
+//     } else {
+//       // Update the existing user's OTP
+//       user = await User.findByIdAndUpdate(user.id, { phoneOtp }, { new: true });
+//     }
+//     const appHash = "ems/3nG2V1H"; // Apne app ka actual hash yahan dalein
 
-    let optResponse = await axios.post(
-      `https://api.authkey.io/request?authkey=${
-        process.env.AUTHKEY_API_KEY
-      }&mobile=${phone}&country_code=91&sid=${
-        process.env.AUTHKEY_SENDER_ID
-      }&company=Acediva&otp=${phoneOtp}&message=${encodeURIComponent(
-        otpMessage
-      )}`
-    );
+//     // Properly formatted OTP message for autofill
+//     const otpMessage = `<#> ${phoneOtp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
 
-    if (optResponse?.status == "200") {
-      return sendResponse(res, 200, "Success", {
-        message: "OTP send successfully",
-        data: user,
-        statusCode: 200,
-      });
-    } else {
-      return sendResponse(res, 422, "Failed", {
-        message: "Unable to send OTP",
-        statusCode: 200,
-      });
-    }
-  } catch (error) {
-    console.error("Error in /send-otp:", error.message);
-    // Respond with failure
-    return sendResponse(res, 500, "Failed", {
-      message: error.message || "Internal server error.",
-    });
-  }
-});
+//     let optResponse = await axios.post(
+//       `https://api.authkey.io/request?authkey=${
+//         process.env.AUTHKEY_API_KEY
+//       }&mobile=${phone}&country_code=91&sid=${
+//         process.env.AUTHKEY_SENDER_ID
+//       }&company=Acediva&otp=${phoneOtp}&message=${encodeURIComponent(
+//         otpMessage
+//       )}`
+//     );
+
+//     if (optResponse?.status == "200") {
+//       return sendResponse(res, 200, "Success", {
+//         message: "OTP send successfully",
+//         data: user,
+//         statusCode: 200,
+//       });
+//     } else {
+//       return sendResponse(res, 422, "Failed", {
+//         message: "Unable to send OTP",
+//         statusCode: 200,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error in /send-otp:", error.message);
+//     // Respond with failure
+//     return sendResponse(res, 500, "Failed", {
+//       message: error.message || "Internal server error.",
+//     });
+//   }
+// });
+
+// userController.post("/sign-up", upload.fields([{ name: "profilePic", maxCount: 1 }]),
+//   async (req, res) => {
+//     try {
+//       // Check if the phone number is unique
+//       const user = await User.findOne({ phone: req.body.phone });
+//       if (user) {
+//         return sendResponse(res, 400, "Failed", {
+//           message: "User is already registered.",
+//           statusCode: 400,
+//         });
+//       }
+
+//       // Generate OTP
+//       const otp = generateOTP();
+
+//       // Upload images to Cloudinary
+//       let profilePic;
+
+//       if (req.files["profilePic"]) {
+//         let image = await cloudinary.uploader.upload(
+//           req.files["profilePic"][0].path
+//         );
+//         profilePic = image.url;
+//       }
+
+//       // Create a new user with provided details
+//       let newUser = await User.create({
+//         ...req.body,
+//         phoneOtp: otp,
+//         profilePic,
+//       });
+
+//       // Generate JWT token
+//       const token = jwt.sign(
+//         { userId: newUser._id, phone: newUser.phone },
+//         process.env.JWT_KEY
+//       );
+
+//       // Store the token in the user object or return it in the response
+//       newUser.token = token;
+//       const updatedUser = await User.findByIdAndUpdate(
+//         newUser._id,
+//         { token },
+//         { new: true }
+//       );
+
+//       // OTP message for autofill
+//       const appHash = "ems/3nG2V1H"; // Replace with your actual hash
+//       const otpMessage = `<#> ${otp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
+
+//       let otpResponse = await axios.post(
+//         `https://api.authkey.io/request?authkey=${
+//           process.env.AUTHKEY_API_KEY
+//         }&mobile=${req.body.phone}&country_code=91&sid=${
+//           process.env.AUTHKEY_SENDER_ID
+//         }&company=Acediva&otp=${otp}&message=${encodeURIComponent(otpMessage)}`
+//       );
+
+//       if (otpResponse?.status == "200") {
+//         return sendResponse(res, 200, "Success", {
+//           message: "OTP sent successfully",
+//           data: updatedUser,
+//           statusCode: 200,
+//         });
+//       } else {
+//         return sendResponse(res, 422, "Failed", {
+//           message: "Unable to send OTP",
+//           statusCode: 200,
+//         });
+//       }
+//     } catch (error) {
+//       console.error("Error in /sign-up:", error.message);
+//       return sendResponse(res, 500, "Failed", {
+//         message: error.message || "Internal server error.",
+//       });
+//     }
+//   }
+// );
+
+// userController.post("/otp-verification", async (req, res) => {
+//   try {
+//     const { phone, phoneOtp, firstName } = req.body;
+//     const user = await User.findOne({ phone, phoneOtp });
+//     if (user) {
+//       const updatedUser = await User.findByIdAndUpdate(
+//         user._id,
+//         { isPhoneVerified: true, ...(firstName && { firstName }) },
+//         { new: true }
+//       );
+//       return sendResponse(res, 200, "Success", {
+//         message: "Otp verified successfully",
+//         data: updatedUser,
+//         statusCode: 200,
+//       });
+//     } else {
+//       return sendResponse(res, 422, "Failed", {
+//         message: "Wrong OTP",
+//         statusCode: 422,
+//       });
+//     }
+//   } catch (error) {
+//     return sendResponse(res, 500, "Failed", {
+//       message: error.message || "Internal server error.",
+//       statusCode: 500,
+//     });
+//   }
+// });
+
+// userController.post("/login", async (req, res) => {
+//   try {
+//     const { phone, password } = req.body;
+//     const user = await User.findOne({ phone, password });
+//     if (user) {
+//       return sendResponse(res, 200, "Success", {
+//         message: "User logged in successfully",
+//         data: user,
+//         statusCode: 200,
+//       });
+//     } else {
+//       return sendResponse(res, 422, "Failed", {
+//         message: "Invalid Credentials",
+//         statusCode: 422,
+//       });
+//     }
+//   } catch (error) {
+//     return sendResponse(res, 500, "Failed", {
+//       message: error.message || "Internal server error.",
+//       statusCode: 500,
+//     });
+//   }
+// });
+
+// userController.post("/resend-otp", async (req, res) => {
+//   try {
+//     const { phone } = req.body;
+//     const user = await User.findOne({ phone });
+//     if (user) {
+//       const otp = generateOTP();
+//       const updatedUser = await User.findByIdAndUpdate(
+//         user._id,
+//         { phoneOtp: otp },
+//         { new: true }
+//       );
+
+//       // OTP message for autofill
+//       const appHash = "ems/3nG2V1H"; // Replace with your actual hash
+//       const otpMessage = `<#> ${otp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
+
+//       let otpResponse = await axios.post(
+//         `https://api.authkey.io/request?authkey=${
+//           process.env.AUTHKEY_API_KEY
+//         }&mobile=${req.body.phone}&country_code=91&sid=${
+//           process.env.AUTHKEY_SENDER_ID
+//         }&company=Acediva&otp=${otp}&message=${encodeURIComponent(otpMessage)}`
+//       );
+
+//       if (otpResponse?.status == "200") {
+//         return sendResponse(res, 200, "Success", {
+//           message: "OTP sent successfully",
+//           data: updatedUser,
+//           statusCode: 200,
+//         });
+//       } else {
+//         return sendResponse(res, 422, "Failed", {
+//           message: "Unable to send OTP",
+//           statusCode: 200,
+//         });
+//       }
+//     } else {
+//       return sendResponse(res, 422, "Failed", {
+//         message: "Phone number is not registered",
+//         statusCode: 422,
+//       });
+//     }
+//   } catch (error) {
+//     return sendResponse(res, 500, "Failed", {
+//       message: error.message || "Internal server error.",
+//       statusCode: 500,
+//     });
+//   }
+// });
+
 
 userController.post(
   "/sign-up",
   upload.fields([{ name: "profilePic", maxCount: 1 }]),
   async (req, res) => {
     try {
-      // Check if the phone number is unique
-      const user = await User.findOne({ phone: req.body.phone });
-      if (user) {
+      const { firstName, lastName, email, password, confirmPassword } = req.body;
+
+      if (!firstName || !email || !password || !confirmPassword) {
         return sendResponse(res, 400, "Failed", {
-          message: "User is already registered.",
-          statusCode: 400,
+          message: "All required fields must be filled.",
         });
       }
 
-      // Generate OTP
-      const otp = generateOTP();
+      if (password !== confirmPassword) {
+        return sendResponse(res, 400, "Failed", {
+          message: "Passwords do not match.",
+        });
+      }
 
-      // Upload images to Cloudinary
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return sendResponse(res, 400, "Failed", {
+          message: "Email already exists.",
+        });
+      }
+
       let profilePic;
-
       if (req.files["profilePic"]) {
-        let image = await cloudinary.uploader.upload(
-          req.files["profilePic"][0].path
-        );
+        const image = await cloudinary.uploader.upload(req.files["profilePic"][0].path);
         profilePic = image.url;
       }
 
-      // Create a new user with provided details
-      let newUser = await User.create({
-        ...req.body,
-        phoneOtp: otp,
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = await User.create({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
         profilePic,
+        profileStatus: "completed",
       });
 
-      // Generate JWT token
       const token = jwt.sign(
-        { userId: newUser._id, phone: newUser.phone },
+        { userId: newUser._id, email: newUser.email },
         process.env.JWT_KEY
       );
 
-      // Store the token in the user object or return it in the response
-      newUser.token = token;
       const updatedUser = await User.findByIdAndUpdate(
         newUser._id,
         { token },
         { new: true }
       );
 
-      // OTP message for autofill
-      const appHash = "ems/3nG2V1H"; // Replace with your actual hash
-      const otpMessage = `<#> ${otp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
-
-      let otpResponse = await axios.post(
-        `https://api.authkey.io/request?authkey=${
-          process.env.AUTHKEY_API_KEY
-        }&mobile=${req.body.phone}&country_code=91&sid=${
-          process.env.AUTHKEY_SENDER_ID
-        }&company=Acediva&otp=${otp}&message=${encodeURIComponent(otpMessage)}`
-      );
-
-      if (otpResponse?.status == "200") {
-        return sendResponse(res, 200, "Success", {
-          message: "OTP sent successfully",
-          data: updatedUser,
-          statusCode: 200,
-        });
-      } else {
-        return sendResponse(res, 422, "Failed", {
-          message: "Unable to send OTP",
-          statusCode: 200,
-        });
-      }
+      sendResponse(res, 200, "Success", {
+        message: "User registered successfully",
+        data: updatedUser,
+      });
     } catch (error) {
-      console.error("Error in /sign-up:", error.message);
-      return sendResponse(res, 500, "Failed", {
-        message: error.message || "Internal server error.",
+      console.error("Signup error:", error.message);
+      sendResponse(res, 500, "Failed", {
+        message: error.message || "Internal server error",
       });
     }
   }
 );
 
-userController.post("/otp-verification", async (req, res) => {
-  try {
-    const { phone, phoneOtp, firstName } = req.body;
-    const user = await User.findOne({ phone, phoneOtp });
-    if (user) {
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        { isPhoneVerified: true, ...(firstName && { firstName }) },
-        { new: true }
-      );
-      return sendResponse(res, 200, "Success", {
-        message: "Otp verified successfully",
-        data: updatedUser,
-        statusCode: 200,
-      });
-    } else {
-      return sendResponse(res, 422, "Failed", {
-        message: "Wrong OTP",
-        statusCode: 422,
-      });
-    }
-  } catch (error) {
-    return sendResponse(res, 500, "Failed", {
-      message: error.message || "Internal server error.",
-      statusCode: 500,
-    });
-  }
-});
 
 userController.post("/login", async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    const user = await User.findOne({ phone, password });
-    if (user) {
-      return sendResponse(res, 200, "Success", {
-        message: "User logged in successfully",
-        data: user,
-        statusCode: 200,
-      });
-    } else {
-      return sendResponse(res, 422, "Failed", {
-        message: "Invalid Credentials",
-        statusCode: 422,
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return sendResponse(res, 400, "Failed", {
+        message: "Email and password are required.",
       });
     }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendResponse(res, 401, "Failed", {
+        message: "Invalid credentials.",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return sendResponse(res, 401, "Failed", {
+        message: "Invalid credentials.",
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_KEY
+    );
+
+    await User.findByIdAndUpdate(user._id, { token });
+
+    sendResponse(res, 200, "Success", {
+      message: "Login successful",
+      data: { ...user._doc, token },
+    });
   } catch (error) {
-    return sendResponse(res, 500, "Failed", {
-      message: error.message || "Internal server error.",
-      statusCode: 500,
+    console.error("Login error:", error.message);
+    sendResponse(res, 500, "Failed", {
+      message: error.message || "Internal server error",
     });
   }
 });
 
-userController.post("/resend-otp", async (req, res) => {
-  try {
-    const { phone } = req.body;
-    const user = await User.findOne({ phone });
-    if (user) {
-      const otp = generateOTP();
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        { phoneOtp: otp },
-        { new: true }
-      );
 
-      // OTP message for autofill
-      const appHash = "ems/3nG2V1H"; // Replace with your actual hash
-      const otpMessage = `<#> ${otp} is your OTP for verification. Do not share it with anyone.\n${appHash}`;
-
-      let otpResponse = await axios.post(
-        `https://api.authkey.io/request?authkey=${
-          process.env.AUTHKEY_API_KEY
-        }&mobile=${req.body.phone}&country_code=91&sid=${
-          process.env.AUTHKEY_SENDER_ID
-        }&company=Acediva&otp=${otp}&message=${encodeURIComponent(otpMessage)}`
-      );
-
-      if (otpResponse?.status == "200") {
-        return sendResponse(res, 200, "Success", {
-          message: "OTP sent successfully",
-          data: updatedUser,
-          statusCode: 200,
-        });
-      } else {
-        return sendResponse(res, 422, "Failed", {
-          message: "Unable to send OTP",
-          statusCode: 200,
-        });
-      }
-    } else {
-      return sendResponse(res, 422, "Failed", {
-        message: "Phone number is not registered",
-        statusCode: 422,
-      });
-    }
-  } catch (error) {
-    return sendResponse(res, 500, "Failed", {
-      message: error.message || "Internal server error.",
-      statusCode: 500,
-    });
-  }
-});
 
 userController.get("/details/:id", auth, async (req, res) => {
   try {

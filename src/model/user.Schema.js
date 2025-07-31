@@ -9,36 +9,36 @@ const userSchema = mongoose.Schema({
   lastName: {
     type: String,
   },
-  subscriptionDetails: {
-    subscriptionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SubscriptionChit",
-    },
-    planName: { type: String },
-    planPrice: { type: String },
-    duration: { type: Number },
-    startDate: { type: Date },
-    endDate: { type: Date },
-  },
+  // subscriptionDetails: {
+  //   subscriptionId: {
+  //     type: mongoose.Schema.Types.ObjectId,
+  //     ref: "SubscriptionChit",
+  //   },
+  //   planName: { type: String },
+  //   planPrice: { type: String },
+  //   duration: { type: Number },
+  //   startDate: { type: Date },
+  //   endDate: { type: Date },
+  // },
   email: {
     type: String,
   },
   password: {
     type: String,
   },
-  emailOtp: {
-    type: String,
-  },
-  phoneOtp: {
-    type: String,
-  },
+  // emailOtp: {
+  //   type: String,
+  // },
+  // phoneOtp: {
+  //   type: String,
+  // },
   token: {
     type: String,
   },
-  phone: {
-    type: String,
-    required: true,
-  },
+  // phone: {
+  //   type: String,
+  //   required: true,
+  // },
   profilePic: {
     type: String,
   },
@@ -46,10 +46,10 @@ const userSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  isPhoneVerified: {
-    type: Boolean,
-    default: false,
-  },
+  // isPhoneVerified: {
+  //   type: Boolean,
+  //   default: false,
+  // },
   countryCode: {
     type: String,
     default: "91",
@@ -65,12 +65,12 @@ const userSchema = mongoose.Schema({
   address: {
     type: String,
   },
-  cartItems: [{
-    itemId: { type: String, required: true },
-    itemType: { type: String, enum: ["Product", "ComboProduct"], required: true },
-    quantity: { type: Number },
-  }],
-    wishListItems: [{ type: String, ref: "Product" }],
+  // cartItems: [{
+  //   itemId: { type: String, required: true },
+  //   itemType: { type: String, enum: ["Product", "ComboProduct"], required: true },
+  //   quantity: { type: Number },
+  // }],
+    // wishListItems: [{ type: String, ref: "Product" }],
 });
 
 userSchema.plugin(timestamps);
