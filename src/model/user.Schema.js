@@ -49,10 +49,10 @@ const userSchema = mongoose.Schema({
   //   type: Boolean,
   //   default: false,
   // },
-  countryCode: {
-    type: String,
-    default: "91",
-  },
+  // countryCode: {
+  //   type: String,
+  //   default: "91",
+  // },
   profileStatus:{
     type: String,
     default: "incompleted",
