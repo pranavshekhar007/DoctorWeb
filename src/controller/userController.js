@@ -274,72 +274,61 @@ const bcrypt = require("bcryptjs");
 // });
 
 
-userController.post(
-  "/sign-up",
-  upload.fields([{ name: "profilePic", maxCount: 1 }]),
-  async (req, res) => {
-    try {
-      const { firstName, lastName, email, password, confirmPassword } = req.body;
+userController.post("/sign-up", async (req, res) => {
+  try {
+    const { name, email, password, confirmPassword } = req.body;
 
-      if (!firstName || !email || !password || !confirmPassword) {
-        return sendResponse(res, 400, "Failed", {
-          message: "All required fields must be filled.",
-        });
-      }
-
-      if (password !== confirmPassword) {
-        return sendResponse(res, 400, "Failed", {
-          message: "Passwords do not match.",
-        });
-      }
-
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return sendResponse(res, 400, "Failed", {
-          message: "Email already exists.",
-        });
-      }
-
-      let profilePic;
-      if (req.files["profilePic"]) {
-        const image = await cloudinary.uploader.upload(req.files["profilePic"][0].path);
-        profilePic = image.url;
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const newUser = await User.create({
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-        profilePic,
-        profileStatus: "completed",
-      });
-
-      const token = jwt.sign(
-        { userId: newUser._id, email: newUser.email },
-        process.env.JWT_KEY
-      );
-
-      const updatedUser = await User.findByIdAndUpdate(
-        newUser._id,
-        { token },
-        { new: true }
-      );
-
-      sendResponse(res, 200, "Success", {
-        message: "User registered successfully",
-        data: updatedUser,
-      });
-    } catch (error) {
-      console.error("Signup error:", error.message);
-      sendResponse(res, 500, "Failed", {
-        message: error.message || "Internal server error",
+    if (!name || !email || !password || !confirmPassword) {
+      return sendResponse(res, 400, "Failed", {
+        message: "All required fields must be filled.",
       });
     }
+
+    if (password !== confirmPassword) {
+      return sendResponse(res, 400, "Failed", {
+        message: "Passwords do not match.",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return sendResponse(res, 400, "Failed", {
+        message: "Email already exists.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      profileStatus: "completed",
+    });
+
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email },
+      process.env.JWT_KEY
+    );
+
+    const updatedUser = await User.findByIdAndUpdate(
+      newUser._id,
+      { token },
+      { new: true }
+    );
+
+    sendResponse(res, 200, "Success", {
+      message: "User registered successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("Signup error:", error.message);
+    sendResponse(res, 500, "Failed", {
+      message: error.message || "Internal server error",
+    });
   }
-);
+});
+
 
 
 userController.post("/login", async (req, res) => {

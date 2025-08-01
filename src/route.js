@@ -40,6 +40,7 @@ const bulkLocationController = require("./controller/bulkLocationController");
 const subscriptionChitController = require("./controller/subscriptionChitController");
 const schemeConfigController = require("./controller/schemeConfigController");
 const googleReviewController = require("./controller/googleReviewController");
+const doctorReviewController = require("./controller/doctorReviewController");
 
 router.use("/user", userController);
 router.use("/driver", driverController);
@@ -81,5 +82,6 @@ router.use("/bulk-location", bulkLocationController);
 router.use("/subscription", subscriptionChitController);
 router.use("/scheme", schemeConfigController);
 router.use("/review", googleReviewController);
+router.use("/doctor-review", doctorReviewController);
 
 module.exports = router;

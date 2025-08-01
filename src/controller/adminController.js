@@ -70,7 +70,7 @@ adminController.post("/login", async (req, res) => {
     const user = await Admin.findOne({ email, password });
     if (user) {
       return sendResponse(res, 200, "Success", {
-        message: "User logged in successfully",
+        message: "Admin logged in successfully",
         data: user,
         statusCode: 200,
       });

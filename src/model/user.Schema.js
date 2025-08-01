@@ -3,12 +3,11 @@ const timestamps = require("mongoose-timestamp");
 const { type } = require("os");
 
 const userSchema = mongoose.Schema({
-  firstName: {
+  name: {
     type: String,
+    required: true,
   },
-  lastName: {
-    type: String,
-  },
+  
   // subscriptionDetails: {
   //   subscriptionId: {
   //     type: mongoose.Schema.Types.ObjectId,
@@ -39,13 +38,13 @@ const userSchema = mongoose.Schema({
   //   type: String,
   //   required: true,
   // },
-  profilePic: {
-    type: String,
-  },
-  isEmailVerified: {
-    type: Boolean,
-    default: false,
-  },
+  // profilePic: {
+  //   type: String,
+  // },
+  // isEmailVerified: {
+  //   type: Boolean,
+  //   default: false,
+  // },
   // isPhoneVerified: {
   //   type: Boolean,
   //   default: false,
