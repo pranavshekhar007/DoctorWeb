@@ -2,9 +2,19 @@ const mongoose = require("mongoose");
 const timestamps = require("mongoose-timestamp");
 
 const doctorReviewSchema = mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["text", "video"],
+    required: true,
+    default: "text"
+  },
   review: {
     type: String,
-    required: true,
+    default: "",
+  },
+  videoUrl: {
+    type: String,
+    default: "",
   },
   rating: {
     type: Number,
