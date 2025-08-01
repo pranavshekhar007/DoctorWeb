@@ -76,7 +76,7 @@ doctorReviewController.post("/list", async (req, res) => {
     const sort = { [sortByField]: sortByOrder === "asc" ? 1 : -1 };
 
     const reviews = await DoctorReview.find(query)
-      .populate("userId", "firstName lastName location profilePic")
+      .populate("userId", "name")
       .sort(sort)
       .skip((pageNo - 1) * pageCount)
       .limit(pageCount);
