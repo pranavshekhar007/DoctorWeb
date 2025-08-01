@@ -400,6 +400,65 @@ userController.get("/details/:id", auth, async (req, res) => {
   }
 });
 
+
+userController.put("/update", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return sendResponse(res, 401, "Failed", { message: "Token missing" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_KEY);
+    } catch (err) {
+      return sendResponse(res, 401, "Failed", { message: "Invalid token" });
+    }
+
+    const userId = decoded.userId;
+
+    const userData = await User.findById(userId);
+    if (!userData) {
+      return sendResponse(res, 404, "Failed", {
+        message: "User not found",
+      });
+    }
+
+    let updatedData = { ...req.body };
+
+    // Remove restricted/sensitive fields from update
+    delete updatedData.password;
+    delete updatedData.email;
+    delete updatedData.token;
+    delete updatedData.profilePic;
+
+    // Set profileStatus to completed
+    updatedData.profileStatus = "completed";
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+    });
+
+    req.io?.emit("userUpdated", {
+      message: "User profile updated",
+      userId: updatedUser._id,
+      updatedData: updatedUser,
+    });
+
+    sendResponse(res, 200, "Success", {
+      message: "User updated successfully!",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update error:", error.message);
+    sendResponse(res, 500, "Failed", {
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
+
 userController.post("/list", async (req, res) => {
   try {
     const {
@@ -794,45 +853,45 @@ userController.get("/wishlist/:userId", async (req, res) => {
   }
 });
 
-userController.put("/update", upload.single("profilePic"), async (req, res) => {
-  try {
-    const id = req.body.userId;
-    const userData = await User.findOne({ _id: id });
-    if (!userData) {
-      return sendResponse(res, 404, "Failed", {
-        message: "User not found",
-      });
-    }
+// userController.put("/update", upload.single("profilePic"), async (req, res) => {
+//   try {
+//     const id = req.body.userId;
+//     const userData = await User.findOne({ _id: id });
+//     if (!userData) {
+//       return sendResponse(res, 404, "Failed", {
+//         message: "User not found",
+//       });
+//     }
 
-    let updatedData = { ...req.body };
+//     let updatedData = { ...req.body };
 
-    if (req.file) {
-      const profilePic = await cloudinary.uploader.upload(req.file.path);
-      updatedData.profilePic = profilePic.url;
-    }
-    updatedData.profileStatus = "completed";
-    const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+//     if (req.file) {
+//       const profilePic = await cloudinary.uploader.upload(req.file.path);
+//       updatedData.profilePic = profilePic.url;
+//     }
+//     updatedData.profileStatus = "completed";
+//     const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
+//       new: true,
+//     });
 
-    req.io.emit("userUpdated", {
-      message: "User profile updated",
-      userId: updatedUser._id,
-      updatedData: updatedUser,
-    });
+//     req.io.emit("userUpdated", {
+//       message: "User profile updated",
+//       userId: updatedUser._id,
+//       updatedData: updatedUser,
+//     });
 
-    sendResponse(res, 200, "Success", {
-      message: "User updated successfully!",
-      data: updatedUser,
-      statusCode: 200,
-    });
-  } catch (error) {
-    console.error(error);
-    sendResponse(res, 500, "Failed", {
-      message: error.message || "Internal server error",
-    });
-  }
-});
+//     sendResponse(res, 200, "Success", {
+//       message: "User updated successfully!",
+//       data: updatedUser,
+//       statusCode: 200,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     sendResponse(res, 500, "Failed", {
+//       message: error.message || "Internal server error",
+//     });
+//   }
+// });
 
 userController.post("/home-details", async (req, res) => {
   try {
