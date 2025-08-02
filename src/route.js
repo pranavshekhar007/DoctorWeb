@@ -41,6 +41,7 @@ const subscriptionChitController = require("./controller/subscriptionChitControl
 const schemeConfigController = require("./controller/schemeConfigController");
 const googleReviewController = require("./controller/googleReviewController");
 const doctorReviewController = require("./controller/doctorReviewController");
+const appointmentController = require("./controller/appointmentController");
 
 router.use("/user", userController);
 router.use("/driver", driverController);
@@ -83,5 +84,6 @@ router.use("/subscription", subscriptionChitController);
 router.use("/scheme", schemeConfigController);
 router.use("/review", googleReviewController);
 router.use("/doctor-review", doctorReviewController);
+router.use("/appointment", appointmentController);
 
 module.exports = router;
