@@ -9,9 +9,19 @@ const {Server} = require("socket.io")
 const app = express();
 const server = createServer(app);
 
+const allowedOrigins = [
+  "http://localhost:7007",
+  "https://doctor-web-gilt.vercel.app"
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 const io = new Server(server, {
   cors: {
-    origin: "https://doctor-web-gilt.vercel.app/api/",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -44,8 +54,6 @@ io.on("connection", (socket) => {
 app.use('/uploads', express.static('uploads'))
 const PORT = process.env.PORT || 8000;
 
-
-app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
