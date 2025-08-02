@@ -14,11 +14,6 @@ const allowedOrigins = [
   "https://doctor-web-gilt.vercel.app"
 ];
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
-
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -54,6 +49,8 @@ io.on("connection", (socket) => {
 app.use('/uploads', express.static('uploads'))
 const PORT = process.env.PORT || 8000;
 
+
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
