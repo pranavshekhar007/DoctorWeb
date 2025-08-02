@@ -51,6 +51,8 @@ appointmentController.post("/list", async (req, res) => {
 
     const totalCount = await Appointment.countDocuments(query);
     const confirmedCount = await Appointment.countDocuments({ status: "confirmed" });
+    const rejectedCount = await Appointment.countDocuments({ status: "rejected" });
+    const pendingCount = totalCount - confirmedCount - rejectedCount;
 
     sendResponse(res, 200, "Success", {
       message: "Appointment list retrieved successfully!",
@@ -58,7 +60,8 @@ appointmentController.post("/list", async (req, res) => {
       documentCount: {
         totalCount,
         confirmedCount,
-        pendingCount: totalCount - confirmedCount,
+        rejectedCount,
+        pendingCount,
       },
     });
   } catch (error) {
