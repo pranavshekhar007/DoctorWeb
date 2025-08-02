@@ -59,9 +59,13 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["pending", "confirmed"],
+    enum: ["pending", "confirmed", "rejected"],
     default: "pending",
   },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
 });
 
 appointmentSchema.plugin(timestamps);

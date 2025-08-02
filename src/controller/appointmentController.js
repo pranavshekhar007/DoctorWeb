@@ -44,6 +44,7 @@ appointmentController.post("/list", async (req, res) => {
     }
 
     const appointmentList = await Appointment.find(query)
+    .populate("userId", "name")
       .sort({ createdAt: -1 })
       .skip((pageNo - 1) * pageCount)
       .limit(pageCount);
@@ -136,5 +137,30 @@ appointmentController.get("/details/:id", async (req, res) => {
     });
   }
 });
+
+appointmentController.get("/user/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+  
+      const appointments = await Appointment.find({ userId })
+        .populate("userId", "name email");
+  
+      if (!appointments.length) {
+        return sendResponse(res, 404, "Failed", {
+          message: "No appointments found for this user",
+        });
+      }
+  
+      sendResponse(res, 200, "Success", {
+        message: "User's appointments fetched successfully!",
+        data: appointments,
+      });
+    } catch (error) {
+      console.error(error);
+      sendResponse(res, 500, "Failed", {
+        message: error.message || "Internal server error",
+      });
+    }
+  });  
 
 module.exports = appointmentController;
