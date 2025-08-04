@@ -53,10 +53,9 @@ const userSchema = mongoose.Schema({
   //   type: String,
   //   default: "91",
   // },
-  profileStatus:{
-    type: String,
-    default: "incompleted",
-      enum: ["incompleted", "completed"],
+    status: {
+      type: Boolean,
+      default: true,
   },
   pincode: {
     type: String,
@@ -64,6 +63,16 @@ const userSchema = mongoose.Schema({
   address: {
     type: String,
   },
+
+  // In user.Schema.js
+resetPasswordToken: {
+  type: String,
+  default: "",
+},
+resetPasswordExpires: {
+  type: Date,
+},
+
   // cartItems: [{
   //   itemId: { type: String, required: true },
   //   itemType: { type: String, enum: ["Product", "ComboProduct"], required: true },

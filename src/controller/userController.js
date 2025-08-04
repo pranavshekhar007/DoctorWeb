@@ -1,6 +1,6 @@
+require("dotenv").config();
 const express = require("express");
 const { sendResponse, generateOTP } = require("../utils/common");
-require("dotenv").config();
 const mongoose = require("mongoose");
 const Product = require("../model/product.Schema");
 const ComboProduct = require("../model/comboProduct.Schema");
@@ -11,7 +11,6 @@ const User = require("../model/user.Schema");
 const Booking = require("../model/booking.Schema");
 const userController = express.Router();
 const axios = require("axios");
-require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const cloudinary = require("../utils/cloudinary");
 const upload = require("../utils/multer");
@@ -20,7 +19,9 @@ const moment = require("moment");
 const bcrypt = require("bcryptjs");
 const Appointment = require("../model/appointment.Schema");
 const DoctorReview = require("../model/doctorReview.Schema");
-// const Blog = require("../model/blog.Schema");
+const Blog = require("../model/blog.Schema");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 
 // userController.post("/send-otp", async (req, res) => {
 //   try {
@@ -305,7 +306,7 @@ userController.post("/sign-up", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      profileStatus: "completed",
+      // profileStatus: "completed",
     });
 
     const token = jwt.sign(
@@ -425,10 +426,10 @@ userController.put("/update", async (req, res) => {
     let updatedData = { ...req.body };
 
     // Remove restricted/sensitive fields from update
-    delete updatedData.password;
-    delete updatedData.email;
-    delete updatedData.token;
-    delete updatedData.profilePic;
+    // delete updatedData.password;
+    // delete updatedData.email;
+    // delete updatedData.token;
+    // delete updatedData.profilePic;
 
     // Set profileStatus to completed
     updatedData.profileStatus = "completed";
@@ -507,6 +508,97 @@ userController.post("/list", async (req, res) => {
     });
   }
 });
+
+
+
+// POST /user/forgot-password
+userController.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return sendResponse(res, 400, "Failed", { message: "Email is required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendResponse(res, 404, "Failed", { message: "User not found." });
+    }
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = Date.now() + 60 * 60 * 1000; // 1 hour
+
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expires;
+    await user.save();
+
+    // Send email logic (use nodemailer or similar)
+    // console.log(process.env.FRONTEND_URL)
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    await sendEmail(
+      user.email,
+      "Reset Password",
+      `<p>Click <a href="${resetLink}">here</a> to reset your password.<br>
+       Or copy and paste this link into your browser:<br>
+       ${resetLink}
+       <br><br>
+       If you did not request a password reset, please ignore this email.
+       </p>`
+    );
+    
+
+    sendResponse(res, 200, "Success", {
+      message: "Reset password link sent to your email address.",
+    });
+  } catch (error) {
+    sendResponse(res, 500, "Failed", { message: error.message });
+  }
+});
+
+
+// POST /user/reset-password
+userController.post("/reset-password", async (req, res) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+    if (!token || !password || !confirmPassword) {
+      return sendResponse(res, 400, "Failed", { message: "All fields are required." });
+    }
+    if (password !== confirmPassword) {
+      return sendResponse(res, 400, "Failed", { message: "Passwords do not match." });
+    }
+
+    // Find user with valid token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }, // Not expired
+    });
+
+    if (!user) {
+      return sendResponse(res, 400, "Failed", { message: "Password reset link is invalid or has expired." });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = "";
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    sendResponse(res, 200, "Success", {
+      message: "Password reset successfully. You can now log in.",
+    });
+  } catch (error) {
+    sendResponse(res, 500, "Failed", { message: error.message });
+  }
+});
+
+
+
+
+
+
+
+
 
 // Helper function to fetch item by type
 async function getItemByIdAndType(itemId, itemType) {
@@ -994,11 +1086,11 @@ userController.get("/dashboard-details", async (req, res) => {
     ]);
 
     // --- BLOG VIEWS STATS ---
-    // let totalBlogViews = 0;
-    // const blogViewsAgg = await Blog.aggregate([
-    //   { $group: { _id: null, views: { $sum: "$views" } } }
-    // ]);
-    // totalBlogViews = blogViewsAgg.length ? blogViewsAgg[0].views : 0;
+    let totalBlogViews = 0;
+    const blogViewsAgg = await Blog.aggregate([
+      { $group: { _id: null, views: { $sum: "$views" } } }
+    ]);
+    totalBlogViews = blogViewsAgg.length ? blogViewsAgg[0].views : 0;
 
     // Last 15 days appointments
     const last15DaysAgg = await Appointment.aggregate([
@@ -1044,9 +1136,9 @@ userController.get("/dashboard-details", async (req, res) => {
           new: newReviews,
           unread: unreadReviews,
         },
-        // blogs: {
-        //   totalViews: totalBlogViews,
-        // },
+        blogs: {
+          totalViews: totalBlogViews,
+        },
       },
       statusCode: 200,
     });
