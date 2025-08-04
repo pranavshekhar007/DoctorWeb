@@ -13,11 +13,13 @@ appointmentController.post("/create", async (req, res) => {
     sendResponse(res, 200, "Success", {
       message: "Appointment created successfully!",
       data: newAppointment,
+      statusCode: 200, 
     });
   } catch (error) {
     console.error(error);
     sendResponse(res, 500, "Failed", {
       message: error.message || "Internal server error",
+      statusCode: 500,
     });
   }
 });
@@ -63,10 +65,12 @@ appointmentController.post("/list", async (req, res) => {
         rejectedCount,
         pendingCount,
       },
+      statusCode: 200,
     });
   } catch (error) {
     sendResponse(res, 500, "Failed", {
       message: error.message || "Internal server error",
+      statusCode: 500,
     });
   }
 });
@@ -80,6 +84,7 @@ appointmentController.put("/update", async (req, res) => {
     if (!existing) {
       return sendResponse(res, 404, "Failed", {
         message: "Appointment not found",
+        statusCode: 404,
       });
     }
 
@@ -88,10 +93,12 @@ appointmentController.put("/update", async (req, res) => {
     sendResponse(res, 200, "Success", {
       message: "Appointment updated successfully!",
       data: updated,
+      statusCode: 200,
     });
   } catch (error) {
     sendResponse(res, 500, "Failed", {
       message: error.message || "Internal server error",
+      statusCode: 500,
     });
   }
 });
@@ -104,6 +111,7 @@ appointmentController.delete("/delete/:id", async (req, res) => {
     if (!found) {
       return sendResponse(res, 404, "Failed", {
         message: "Appointment not found",
+        statusCode: 404,
       });
     }
 
@@ -111,10 +119,12 @@ appointmentController.delete("/delete/:id", async (req, res) => {
 
     sendResponse(res, 200, "Success", {
       message: "Appointment deleted successfully!",
+      statusCode: 200,
     });
   } catch (error) {
     sendResponse(res, 500, "Failed", {
       message: error.message || "Internal server error",
+      statusCode: 500,
     });
   }
 });
@@ -123,7 +133,8 @@ appointmentController.delete("/delete/:id", async (req, res) => {
 appointmentController.get("/details/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const data = await Appointment.findById(id);
+    const data = await Appointment.findById(id)
+    .populate("userId", "name");
     if (!data) {
       return sendResponse(res, 404, "Failed", {
         message: "Appointment not found",
@@ -133,10 +144,12 @@ appointmentController.get("/details/:id", async (req, res) => {
     sendResponse(res, 200, "Success", {
       message: "Appointment fetched successfully!",
       data,
+      statusCode: 200,
     });
   } catch (error) {
     sendResponse(res, 500, "Failed", {
       message: error.message || "Internal server error",
+      statusCode: 500,
     });
   }
 });
@@ -157,11 +170,13 @@ appointmentController.get("/user/:userId", async (req, res) => {
       sendResponse(res, 200, "Success", {
         message: "User's appointments fetched successfully!",
         data: appointments,
+        statusCode: 200,
       });
     } catch (error) {
       console.error(error);
       sendResponse(res, 500, "Failed", {
         message: error.message || "Internal server error",
+        statusCode: 500,
       });
     }
   });  

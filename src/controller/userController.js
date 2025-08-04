@@ -18,6 +18,9 @@ const upload = require("../utils/multer");
 const auth = require("../utils/auth");
 const moment = require("moment");
 const bcrypt = require("bcryptjs");
+const Appointment = require("../model/appointment.Schema");
+const DoctorReview = require("../model/doctorReview.Schema");
+// const Blog = require("../model/blog.Schema");
 
 // userController.post("/send-otp", async (req, res) => {
 //   try {
@@ -273,7 +276,6 @@ const bcrypt = require("bcryptjs");
 //   }
 // });
 
-
 userController.post("/sign-up", async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
@@ -329,8 +331,6 @@ userController.post("/sign-up", async (req, res) => {
   }
 });
 
-
-
 userController.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -374,8 +374,6 @@ userController.post("/login", async (req, res) => {
   }
 });
 
-
-
 userController.get("/details/:id", auth, async (req, res) => {
   try {
     const id = req.params.id;
@@ -399,7 +397,6 @@ userController.get("/details/:id", auth, async (req, res) => {
     });
   }
 });
-
 
 userController.put("/update", async (req, res) => {
   try {
@@ -457,7 +454,6 @@ userController.put("/update", async (req, res) => {
     });
   }
 });
-
 
 userController.post("/list", async (req, res) => {
   try {
@@ -703,7 +699,6 @@ userController.post("/remove-item-from-cart/:id", async (req, res) => {
     });
   }
 });
-
 
 // Get Cart Items
 userController.get("/cart/:userId", async (req, res) => {
@@ -981,38 +976,32 @@ userController.delete("/delete/:id", async (req, res) => {
 });
 userController.get("/dashboard-details", async (req, res) => {
   try {
-    const [
-      totalUser,
-      activeUser,
-      inactiveUser,
-      totalBooking,
-      activeBooking,
-      bookingCompleted,
-      totalProduct,
-      singleProduct,
-      comboProduct,
-    ] = await Promise.all([
-      User.countDocuments({}),
-      User.countDocuments({ profileStatus: "completed" }),
-      User.countDocuments({ profileStatus: "incompleted" }),
-      Booking.countDocuments({}),
-      Booking.countDocuments({
-        status: { $in: ["orderPlaced", "orderPacked", "outForDelivery"] },
-      }),
-      Booking.countDocuments({ status: "completed" }),
-      (async () => {
-        const [productCount, comboProductCount] = await Promise.all([
-          Product.countDocuments({}),
-          ComboProduct.countDocuments({}),
-        ]);
-        return productCount + comboProductCount;
-      })(),
-      Product.countDocuments({}),
-      ComboProduct.countDocuments({}),
+    // 1. --- APPOINTMENT STATS ---
+    const todayDate = moment().format("YYYY-MM-DD");
+
+    const [todayAppointments, confirmedAppointments, pendingAppointments] =
+      await Promise.all([
+        Appointment.countDocuments({ date: todayDate }),
+        Appointment.countDocuments({ status: "confirmed" }),
+        Appointment.countDocuments({ status: "pending" }),
+      ]);
+
+    // --- REVIEWS STATS ---
+    const [totalReviews, newReviews, unreadReviews] = await Promise.all([
+      DoctorReview.countDocuments({}),
+      DoctorReview.countDocuments({ reply: "" }),
+      DoctorReview.countDocuments({ status: true, reply: "" }),
     ]);
 
-    // **Last 15 Days Booking Count Logic**
-    const last15Days = await Booking.aggregate([
+    // --- BLOG VIEWS STATS ---
+    // let totalBlogViews = 0;
+    // const blogViewsAgg = await Blog.aggregate([
+    //   { $group: { _id: null, views: { $sum: "$views" } } }
+    // ]);
+    // totalBlogViews = blogViewsAgg.length ? blogViewsAgg[0].views : 0;
+
+    // Last 15 days appointments
+    const last15DaysAgg = await Appointment.aggregate([
       {
         $match: {
           createdAt: {
@@ -1023,41 +1012,41 @@ userController.get("/dashboard-details", async (req, res) => {
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          noOfBookings: { $sum: 1 },
+          noOfAppointments: { $sum: 1 },
         },
       },
       { $sort: { _id: 1 } },
     ]);
-
-    let bookingsLast15Days = [];
+    let last15DaysAppointments = [];
     for (let i = 14; i >= 0; i--) {
       let dateObj = moment().subtract(i, "days");
-      let formattedDate = dateObj.format("Do MMM"); // "1st Jan" format
-      let mongoDate = dateObj.format("YYYY-MM-DD"); // MongoDB ke format ke liye
-
-      let bookingData = last15Days.find((b) => b._id === mongoDate); // Compare in same format
-
-      bookingsLast15Days.push({
-        date: formattedDate, // "1st Jan"
-        noOfBookings: bookingData ? bookingData.noOfBookings : 0,
-        mongoDate: mongoDate,
+      let formattedDate = dateObj.format("Do MMM");
+      let mongoDate = dateObj.format("YYYY-MM-DD");
+      let agg = last15DaysAgg.find((a) => a._id === mongoDate);
+      last15DaysAppointments.push({
+        date: formattedDate,
+        noOfAppointments: agg ? agg.noOfAppointments : 0,
+        mongoDate,
       });
     }
+
     sendResponse(res, 200, "Success", {
       message: "Dashboard details retrieved successfully",
       data: {
-        users: { totalUser, activeUser, inactiveUser },
-        bookings: {
-          totalBooking,
-          activeBooking,
-          bookingCompleted,
+        appointments: {
+          today: todayAppointments,
+          confirmed: confirmedAppointments,
+          pending: pendingAppointments,
+          last15Days: last15DaysAppointments,
         },
-        products: {
-          totalProduct,
-          singleProduct,
-          comboProduct,
+        reviews: {
+          total: totalReviews,
+          new: newReviews,
+          unread: unreadReviews,
         },
-        last15DaysBookings: bookingsLast15Days, // Reverse for ascending order
+        // blogs: {
+        //   totalViews: totalBlogViews,
+        // },
       },
       statusCode: 200,
     });
