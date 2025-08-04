@@ -9,21 +9,10 @@ require("dotenv").config();
 
 supportController.post("/add-contact-query", async (req, res) => {
   try {
-    const { fullName, email, message } = req.body;
-
-    // Optionally validate required fields
-    if (!fullName || !email || !message) {
-      return sendResponse(res, 400, "Failed", {
-        message: "All fields (fullName, email, message) are required.",
-        statusCode: 400,
-      });
-    }
-
-    const contactCreated = await Contact.create({ fullName, email, message });
-
+    const contactCreated = await Contact.create(req.body);
     sendResponse(res, 200, "Success", {
       message:
-        "We have received your query, someone from our team will reach back to you!",
+        "We have recived your query, Someone from our team will reach back to you!",
       data: contactCreated,
       statusCode: 200,
     });
@@ -35,7 +24,6 @@ supportController.post("/add-contact-query", async (req, res) => {
     });
   }
 });
-
 supportController.post("/list-contact-query", async (req, res) => {
   try {
     const {

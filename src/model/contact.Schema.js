@@ -3,24 +3,24 @@ const timestamps = require("mongoose-timestamp");
 const { type } = require("os");
 
 const contactSchema = mongoose.Schema({
-  firstName: {
+  fullName: {
     type: String,
   },
-  lastName: {
-    type: String,
-  },
-  contactNumber: {
-    type: Number,
-  },
-  subject:{
+  // contactNumber: {
+  //   type: Number,
+  // },
+  // subject:{
+  //   type: String,
+  // },
+  email: {
     type: String,
   },
   message:{
     type: String,
   },
-  category:{
-    type: String,
-  },
+  // category:{
+  //   type: String,
+  // },
 });
 
 contactSchema.plugin(timestamps);
