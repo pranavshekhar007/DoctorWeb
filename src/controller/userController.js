@@ -510,6 +510,60 @@ userController.post("/list", async (req, res) => {
 });
 
 
+userController.put("/change-password", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return sendResponse(res, 401, "Failed", { message: "Token missing" });
+    }
+
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_KEY);
+    } catch (err) {
+      return sendResponse(res, 401, "Failed", { message: "Invalid token" });
+    }
+
+    const userId = decoded.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendResponse(res, 404, "Failed", { message: "User not found" });
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return sendResponse(res, 400, "Failed", {
+        message: "All password fields are required.",
+      });
+    }
+
+    // Compare old password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return sendResponse(res, 400, "Failed", { message: "Current password is incorrect." });
+    }
+
+    // Check new and confirm password
+    if (newPassword !== confirmPassword) {
+      return sendResponse(res, 400, "Failed", { message: "New passwords do not match." });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    sendResponse(res, 200, "Success", { message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Change password error:", error.message);
+    sendResponse(res, 500, "Failed", {
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
+
 
 // POST /user/forgot-password
 userController.post("/forgot-password", async (req, res) => {
