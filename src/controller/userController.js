@@ -580,14 +580,14 @@ userController.post("/forgot-password", async (req, res) => {
 
     // Generate a secure random token
     const token = crypto.randomBytes(32).toString("hex");
-    const expires = Date.now() + 60 * 60 * 1000; // 1 hour
+    const expires = Date.now() + 60 * 60 * 1000;
 
     user.resetPasswordToken = token;
     user.resetPasswordExpires = expires;
     await user.save();
 
     // Send email logic (use nodemailer or similar)
-    // console.log(process.env.FRONTEND_URL)
+    console.log(process.env.FRONTEND_URL)
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
     await sendEmail(
       user.email, 
