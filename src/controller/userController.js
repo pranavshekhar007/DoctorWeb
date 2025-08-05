@@ -590,7 +590,7 @@ userController.post("/forgot-password", async (req, res) => {
     // console.log(process.env.FRONTEND_URL)
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
     await sendEmail(
-      user.email,
+      user.email, 
       "Reset Password",
       `<p>Click <a href="${resetLink}">here</a> to reset your password.<br>
        Or copy and paste this link into your browser:<br>
