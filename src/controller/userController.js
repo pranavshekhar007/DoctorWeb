@@ -469,7 +469,7 @@ userController.post("/list", async (req, res) => {
 
     const query = {};
     if (status) query.status = status;
-    if (searchKey) query.firstName = { $regex: searchKey, $options: "i" };
+    if (searchKey) query.name = { $regex: searchKey, $options: "i" };
 
     // Construct sorting object
     const sortField = sortByField || "createdAt";
@@ -509,7 +509,6 @@ userController.post("/list", async (req, res) => {
   }
 });
 
-
 userController.put("/change-password", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -541,12 +540,16 @@ userController.put("/change-password", async (req, res) => {
     // Compare old password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return sendResponse(res, 400, "Failed", { message: "Current password is incorrect." });
+      return sendResponse(res, 400, "Failed", {
+        message: "Current password is incorrect.",
+      });
     }
 
     // Check new and confirm password
     if (newPassword !== confirmPassword) {
-      return sendResponse(res, 400, "Failed", { message: "New passwords do not match." });
+      return sendResponse(res, 400, "Failed", {
+        message: "New passwords do not match.",
+      });
     }
 
     // Update password
@@ -554,7 +557,9 @@ userController.put("/change-password", async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    sendResponse(res, 200, "Success", { message: "Password changed successfully." });
+    sendResponse(res, 200, "Success", {
+      message: "Password changed successfully.",
+    });
   } catch (error) {
     console.error("Change password error:", error.message);
     sendResponse(res, 500, "Failed", {
@@ -563,14 +568,14 @@ userController.put("/change-password", async (req, res) => {
   }
 });
 
-
-
 // POST /user/forgot-password
 userController.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
-      return sendResponse(res, 400, "Failed", { message: "Email is required." });
+      return sendResponse(res, 400, "Failed", {
+        message: "Email is required.",
+      });
     }
 
     const user = await User.findOne({ email });
@@ -587,10 +592,10 @@ userController.post("/forgot-password", async (req, res) => {
     await user.save();
 
     // Send email logic (use nodemailer or similar)
-    console.log(process.env.FRONTEND_URL)
+    console.log(process.env.FRONTEND_URL);
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
     await sendEmail(
-      user.email, 
+      user.email,
       "Reset Password",
       `<p>Click <a href="${resetLink}">here</a> to reset your password.<br>
        Or copy and paste this link into your browser:<br>
@@ -599,7 +604,6 @@ userController.post("/forgot-password", async (req, res) => {
        If you did not request a password reset, please ignore this email.
        </p>`
     );
-    
 
     sendResponse(res, 200, "Success", {
       message: "Reset password link sent to your email address.",
@@ -609,16 +613,19 @@ userController.post("/forgot-password", async (req, res) => {
   }
 });
 
-
 // POST /user/reset-password
 userController.post("/reset-password", async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body;
     if (!token || !password || !confirmPassword) {
-      return sendResponse(res, 400, "Failed", { message: "All fields are required." });
+      return sendResponse(res, 400, "Failed", {
+        message: "All fields are required.",
+      });
     }
     if (password !== confirmPassword) {
-      return sendResponse(res, 400, "Failed", { message: "Passwords do not match." });
+      return sendResponse(res, 400, "Failed", {
+        message: "Passwords do not match.",
+      });
     }
 
     // Find user with valid token
@@ -628,7 +635,9 @@ userController.post("/reset-password", async (req, res) => {
     });
 
     if (!user) {
-      return sendResponse(res, 400, "Failed", { message: "Password reset link is invalid or has expired." });
+      return sendResponse(res, 400, "Failed", {
+        message: "Password reset link is invalid or has expired.",
+      });
     }
 
     // Update password
@@ -645,14 +654,6 @@ userController.post("/reset-password", async (req, res) => {
     sendResponse(res, 500, "Failed", { message: error.message });
   }
 });
-
-
-
-
-
-
-
-
 
 // Helper function to fetch item by type
 async function getItemByIdAndType(itemId, itemType) {
@@ -1123,11 +1124,12 @@ userController.delete("/delete/:id", async (req, res) => {
 userController.get("/dashboard-details", async (req, res) => {
   try {
     // 1. --- APPOINTMENT STATS ---
-    const todayDate = moment().format("YYYY-MM-DD");
+    const startOfDay = moment().startOf("day").toDate();
+    const endOfDay = moment().endOf("day").toDate();
 
     const [todayAppointments, confirmedAppointments, pendingAppointments] =
       await Promise.all([
-        Appointment.countDocuments({ date: todayDate }),
+        Appointment.countDocuments({ createdAt: { $gte: startOfDay, $lte: endOfDay } }),
         Appointment.countDocuments({ status: "confirmed" }),
         Appointment.countDocuments({ status: "pending" }),
       ]);
@@ -1142,7 +1144,7 @@ userController.get("/dashboard-details", async (req, res) => {
     // --- BLOG VIEWS STATS ---
     let totalBlogViews = 0;
     const blogViewsAgg = await Blog.aggregate([
-      { $group: { _id: null, views: { $sum: "$views" } } }
+      { $group: { _id: null, views: { $sum: "$views" } } },
     ]);
     totalBlogViews = blogViewsAgg.length ? blogViewsAgg[0].views : 0;
 
