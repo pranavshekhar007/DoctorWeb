@@ -51,7 +51,7 @@ appointmentController.post("/list", async (req, res) => {
       .skip((pageNo - 1) * pageCount)
       .limit(pageCount);
 
-    const totalCount = await Appointment.countDocuments(query);
+    const totalCount = await Appointment.countDocuments({});
     const confirmedCount = await Appointment.countDocuments({ status: "confirmed" });
     const rejectedCount = await Appointment.countDocuments({ status: "rejected" });
     const pendingCount = totalCount - confirmedCount - rejectedCount;

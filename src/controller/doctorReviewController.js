@@ -65,7 +65,7 @@ doctorReviewController.post(
 doctorReviewController.post("/list", async (req, res) => {
   try {
     const {
-      searchKey = "",
+      type = "",
       status,
       pageNo = 1,
       pageCount = 10,
@@ -75,12 +75,8 @@ doctorReviewController.post("/list", async (req, res) => {
 
     const query = {};
     if (status) query.status = status;
-    if (searchKey) {
-      query.$or = [
-        { review: { $regex: searchKey, $options: "i" } },
-        { type: { $regex: searchKey, $options: "i" } },
-      ];
-    }
+    if (type && type !== "") query.type = type;
+    
     const sortField = sortByField || "createdAt";
     const sortOrder = sortByOrder === "asc" ? 1 : -1;
     const sortOption = { [sortField]: sortOrder };
@@ -91,7 +87,7 @@ doctorReviewController.post("/list", async (req, res) => {
       .limit(parseInt(pageCount))
       .skip(parseInt(pageNo - 1) * parseInt(pageCount));
 
-    const totalCount = await DoctorReview.countDocuments(query);
+    const totalCount = await DoctorReview.countDocuments({});
     const activeCount = await DoctorReview.countDocuments({ status: true });
     sendResponse(res, 200, "Success", {
       message: "List fetched",
